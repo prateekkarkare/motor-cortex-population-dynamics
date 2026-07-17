@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Data (downloaded from DANDI — do NOT commit, it's large)
+data/
+*.nwb
+
+# OS / editor
+.DS_Store
+.vscode/

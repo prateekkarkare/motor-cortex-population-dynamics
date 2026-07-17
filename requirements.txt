@@ -1,0 +1,20 @@
+# Data download
+dandi
+
+# Scientific stack.
+# pandas 1.5.x = last 1.x series; unlike nlb_tools' pinned 1.3.4 it ships
+# Apple-Silicon (arm64) wheels, and nlb_tools' NWBDataset runs fine on it.
+numpy>=1.23,<1.25
+pandas==1.5.3
+scipy
+scikit-learn
+h5py
+pynwb<3
+
+# Plotting + notebook
+matplotlib
+jupyter
+ipykernel
+
+# NOTE: nlb_tools is installed separately with --no-deps (see README), because its
+# requirements pin pandas<=1.3.4 which has no arm64 wheel and fails to build here.
