@@ -50,9 +50,14 @@ curl -L "$base/1bd112a4-5ec5-4033-ac30-d88e70e993d9/download/" \
 > (`resample`, `make_trial_data`) break on pandas ≥ 1.5; the notebook's `bin_spikes`
 > works around both by rebuilding a clean regular time index after binning.
 
-## Roadmap
+## Status
 
-1. **Load + explore** (this commit) — binned spikes, reach conditions, hand velocity.
-2. Per-neuron directional tuning curves (firing rate vs reach direction).
-3. PCA of the population — how many dimensions capture the reaching activity?
-4. Reach-direction decoder.
+**Status.** Steps 1–3 complete. 137 held-in units, 2,295 trials, Dandiset 000128.
+
+**✓ Step 2 — directional tuning.** 137 × 34 tuning matrix, cosine fits. Best single-neuron R² = **0.37**, most ≈ 0.2 — weak against *target* direction, as expected: this is a maze, so the same target is reached by different movements, and array recordings sample unbiasedly (cf. Churchland et al. 2010, Neuron 68:387–400).
+
+**✓ Step 3 — population PCA.** ~**17 PCs for 85%** of variance on the 34 × 137 condition × neuron matrix (PC1 22%, PC2 10%); no 2-D ring. *Caveat: this matrix has rank ≤ 34, and the low-dimensional structure the literature reports lives in the time × neuron trajectory, not here.*
+
+**→ Step 4 — decoder.** Hand-velocity decoding from population rates, scored against the NLB'21 baselines (smoothing 0.624 … AutoLFADS 0.907).
+
+Full experiment log: [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) · Figures: [`assets/`](assets/)
