@@ -3,6 +3,13 @@
 *Project: `motor-cortex-population-dynamics` (Season-2 capstone). Written 2026‑07‑17.*
 *Repo: https://github.com/prateekkarkare/motor-cortex-population-dynamics · Notebook: `notebooks/01_load_and_explore.ipynb`*
 
+> **Correction, 2026-09-13:** the original binning assigned nonchronological spike
+> rows to a replacement clock. The historical tuning/PCA results and biological
+> explanations below are not reliable evidence until rerun. The corrected
+> split-half experiment gives median A/B tuning correlation **0.830**. See the
+> appended [split-half correction](#2026-09-13-split-half-heatmap-and-timing-correction)
+> for the independent raw-count check, repair, and interpretation.
+
 > **What this is.** A start‑to‑finish log of the first sitting on the MC_Maze
 > reaching dataset: every question we asked, *why* we asked it, what the data
 > answered, and what it taught us — including which predictions held and which
@@ -345,3 +352,218 @@ Older threads still worth a look, but secondary: hand-velocity-based direction
 labels, a preferred-direction histogram, and clustering neurons by tuning.
 
 *— end of log —*
+
+---
+
+## 2026-09-13 Split-half heatmap and timing correction
+
+### Question and prediction
+
+Does the preferred-direction diagonal reproduce on independent trials, or is it
+only a consequence of sorting observed maxima? Prateek predicted, before seeing
+the real split, that B's diagonal would be as strong as A's because neurons have
+preferred directions. A and B contain different trials of the same neurons.
+
+### Method
+
+Use mean rates from complete -100 to +400 ms movement-aligned windows. Split
+whole trials randomly within target direction (seed 42), estimate empirical
+preferred directions from A, and display B without re-sorting. Use A's per-neuron
+mean and standard deviation and one fixed color scale for all panels. A third
+panel permutes B's trial labels, preserving direction counts and whole population
+response vectors. This is one illustrative shuffle, not a significance test.
+
+### A preprocessing bug, not a negative neuroscience result
+
+The first attempt gave median A/B correlation 0.017 and an almost absent B ridge.
+An independent count check failed: raw NWB spike timestamps disagreed with the
+notebook's rates for 9 of 25 sampled trial/neuron pairs. The discrepancy already
+existed in the continuous binned data, before trial splitting.
+
+The native loader returned a nonchronological time index. Its resampler groups
+consecutive rows, so binning before sorting and then rebuilding a regular clock
+assigned counts to incorrect times. The repaired `bin_spikes` sorts native
+timestamps first, requires a unique regular clock, and refuses to replace
+mismatched timestamps. The raw dataset was reloaded before repeating the split.
+
+The earlier workaround in the historical environment appendix is therefore
+insufficient. Earlier weak cosine fits, 17-21-PC counts, and maze-based
+explanations are withdrawn pending recomputation; those analyses were not rerun
+in this session. Their original records and plots are retained as history.
+
+### Corrected result
+
+All 2,295 trials now have complete windows, restoring the 47 previously dropped.
+There are 1,140 A trials and 1,155 B trials, 27-66 per direction per half, and all
+137 neurons are retained. The seed and split protocol stayed fixed; restoring
+trials necessarily changes the exact half memberships.
+
+![Corrected split-half heatmaps](assets/mcmaze_split_half_tuning.png)
+
+| Panel | Mean A-selected peak contrast (A standard deviations) |
+|---|---:|
+| A, selected and displayed on A | 2.504 |
+| B, A order unchanged | 1.797 |
+| B with shuffled trial labels, A order unchanged | approximately 0.000 |
+
+The median per-neuron Pearson correlation between A and B direction-averaged
+rates is **0.830**. Peak contrast subtracts each panel's across-direction mean
+per neuron before averaging, so an overall rate offset is not a ridge. These
+descriptive statistics are not percentages of tuned neurons or p-values.
+
+**Interpretation:** the diagonal survives in B, but its peak contrast is about
+72% of A's. A selects maxima benefiting from both signal and favorable noise;
+B shares reproducible signal without necessarily repeating those noise peaks.
+The prediction was supported on survival, but not equal strength. We have
+reproducible direction-associated rate patterns, not proof of cosine tuning or
+of direction as the underlying causal variable. Maze/path/speed confounds remain.
+
+### Validation and next step
+
+Synthetic signal/noise controls, balanced disjoint halves, and fixed A-derived
+ordering passed. A deliberately shuffled-timestamp binning regression passed.
+Corrected counts agree with raw NWB timestamps for five trials spanning the
+session and five neurons (25 pairs). This is a spot check, not a full-data audit.
+
+Recompute the earlier tuning and PCA results before making another biological
+pivot. Also distinguish the 2010 paper's conditions x (neurons x time) PCA from
+our static direction x neuron matrix and trajectory PCA. Figure 8 is a simulated
+oscillator; it does not guarantee a two-dimensional rotation in our recordings.
+
+## 2026-09-13 Repeated-split correlation distribution
+
+**Question:** is the high A/B correlation robust to the random trial partition?
+Notebook section 6c repeats the corrected split procedure for seeds 42 through
+61. Each split uses all 2,295 trials, with 1,140 in A and 1,155 in B, balanced
+within target direction. Compute each neuron's correlation across the 34
+direction means, then take the median across neurons separately for each split.
+One B trial-label shuffle provides a paired visual control per split.
+
+![Repeated-split correlation distribution](assets/mcmaze_repeated_split_correlations.png)
+
+| Within-split statistic | Median across 20 splits | Minimum | Maximum |
+|---|---:|---:|---:|
+| Median per-neuron A/B correlation | 0.8352 | 0.8126 | 0.8495 |
+| Median per-neuron A/shuffled-B correlation | 0.0034 | -0.0572 | 0.0839 |
+
+Each dot is one split's median, not one neuron. Vertical offsets only separate
+overlapping dots. The black tick is the median of the 20 values; the horizontal
+segment spans their observed minimum and maximum.
+
+**Validation:** all 20 partitions are distinct and disjoint within split;
+direction counts remain balanced; seed 42 exactly reproduces its original
+assignment and per-neuron correlations. Neuron 2451 has a constant B curve in
+seeds 56 and 61, making Pearson correlation undefined for real and shuffled B.
+Those splits use the same 136 finite neurons in both medians; the other 18 use
+137. Every undefined value was checked against a constant curve and was not
+replaced with zero. The notebook retains the full per-neuron results and
+paired-inclusion flags.
+
+**Interpretation:** population-median repeatability stays high across these
+partitions, while shuffled controls remain near zero. The original 0.830 result
+was not specific to a favorable seed. Repetition did not make the correlation
+approach one or provide new neural observations. No A or B curves were pooled
+across splits, which would make both estimates reuse the same trials.
+
+The range describes partition sensitivity, not a confidence interval. These
+splits reuse trials and are not 20 independent experiments; the shuffled
+controls do not constitute a calibrated significance test. This distribution
+also does not imply that every neuron has a correlation near 0.835.
+
+## 2026-09-14 Preparation versus movement: visualization and reliability
+
+**Question.** For the same neuron, do conditions favored during preparation
+remain favored during movement? Prateek proposed visualizing neural activity
+alongside kinematics and comparing the epochs, with a working expectation of
+weak cross-epoch agreement. Similar condition preferences would be consistent
+with a smaller-copy model, but correlation alone would establish neither smaller
+preparatory amplitude nor a causal mechanism. Simultaneous rises in two time
+traces are not the same test as preserved preferences across conditions.
+
+### Exact epochs and matched trials
+
+Notebook section 8 uses raw NWB spike timestamps, independently of historical
+binned outputs. Count in half-open windows: preparation go cue -200 to +100 ms
+(300 ms), movement onset -100 to +350 ms (450 ms). The latter cannot be expressed
+as an integer number of our old 20 ms bins. Quantitative rates are unsmoothed.
+
+Require successful trials with target-to-go delay >400 ms and fully observed
+windows inside the trial for every included unit. All 1,967 eligible trials
+remain: 137 held-in units, 108 `(maze_id, trial_version)` conditions, 14-24
+repetitions per condition (median 18). Both epochs use the same trials; their
+windows do not overlap. Boundary tests and 50 direct-mask count checks passed.
+
+### Experiment 1: neural activity alongside kinematics
+
+Split trials within each condition, seed 42. For illustrations only, screen
+neurons for >5 Hz condition-mean modulation in each epoch in A, then select three
+with fixed random seed 7: units 2413, 2472, and 2821. No neuron was selected by
+cross-epoch correlation. Show B responses for three mazes spanning the sampled
+target-angle ordering, with no-barrier and barrier variants: six conditions,
+9-10 B trials each. The full population analysis is not restricted to examples.
+
+![Same neurons and conditions across epochs](assets/mcmaze_preparation_movement_traces.png)
+
+Colors track conditions across neural, horizontal/vertical velocity, and speed
+panels. Go-cue and movement-onset views are separate, not artificially stitched
+across variable reaction times. Target presentation and the go cue precede their
+respective plotted views. Gray shading marks the quantitative averaging windows.
+
+Neural traces use 10 ms bins and 20 ms Gaussian sigma, with 80 ms padding; bands
+are mean +/- SEM across B trials. Kinematics use raw timestamp interpolation,
+rejecting missing data, gaps and extrapolation. Apply the NWB conversion factor
+0.001 to m/s, then display cm/s. Compute speed per trial before averaging.
+Preparation has neural activity while hand velocity remains near zero; neural
+condition preferences can change during and between epochs. These plots do not
+fit or validate a relationship with a specific kinematic predictor.
+
+### Experiment 2: condition tuning and reliability
+
+For each neuron, correlate 108 preparatory condition means with the matched
+movement means. Estimate preparation and movement split-half reliability
+separately over seeds 42-61, taking each neuron's median coefficient. Also
+correlate preparation A with movement B and the reverse, summarizing the 40
+disjoint-half coefficients per neuron by their median. Do not pool curves across
+splits. These are descriptive repeated partitions, not independent experiments.
+
+![Condition correlations with reliability controls](assets/mcmaze_preparation_movement_correlations.png)
+
+| Across-neuron statistic | Median | Mean |
+|---|---:|---:|
+| Preparatory split-half reliability | 0.350 | 0.412 |
+| Movement split-half reliability | 0.704 | 0.644 |
+| Preparation/movement, matched trials | 0.050 | 0.089 |
+| Preparation/movement, disjoint halves | 0.025 | 0.064 |
+
+**48 neurons pass the prespecified exploratory screen of both epoch median
+split-half correlations >=0.5.** Their matched-trial cross-epoch median is 0.178
+(mean 0.164), spanning -0.555 to +0.743. Their disjoint-half median is 0.154
+(mean 0.142). This threshold is not a significance criterion or a noise
+correction; all neurons remain visible in the full-population summaries.
+
+Synthetic controls verify that perfectly repeatable epoch tuning can have
+cross-epoch correlation 1 (preserved preferences) or 0 (orthogonal preferences).
+All 20 trial partitions are distinct and balanced; seed 42 reproduces exactly.
+Constant curves are left undefined rather than assigned zero; none of the real
+epoch correlations were undefined in this run. Individual coefficients remain
+available in `epoch_reliability_details` and `epoch_neuron_results`.
+
+### Interpretation and limits
+
+Low agreement across all neurons partly reflects less repeatable preparation.
+For neurons passing the reliability screen, cross-epoch agreement remains modest
+on average, including negative examples. This argues against a universal
+smaller-copy model with preserved condition preferences; some neurons do preserve
+preferences. It does not prove a dynamical initial-state mechanism or show that
+kinematics cannot explain the responses.
+
+The three preselected examples have B-only correlations -0.057, -0.332, -0.421
+across all conditions; they are illustrations, not population-representative
+estimates. The paper used different modulation-based neuron inclusion criteria,
+so this is paper-inspired rather than an exact numerical replication.
+
+The earlier 0.835 direction-repeatability result used 34 pooled directions and
+more trials per group, not 108 conditions and these epochs. It is not directly
+comparable to the lower preparatory reliability here. No kinematic encoding
+model, decoder, time-resolved correlation curve, or dynamical model was fitted;
+historical cosine/PCA results remain unrerun.

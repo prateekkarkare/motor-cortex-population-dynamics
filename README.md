@@ -46,18 +46,44 @@ curl -L "$base/1bd112a4-5ec5-4033-ac30-d88e70e993d9/download/" \
   -o data/000128/sub-Jenkins/sub-Jenkins_ses-full_desc-test_ecephys.nwb             # ~3 MB
 ```
 
-> **pandas compat:** `nlb_tools` 0.0.4 was written for pandas ≤ 1.3.4. Two calls
-> (`resample`, `make_trial_data`) break on pandas ≥ 1.5; the notebook's `bin_spikes`
-> works around both by rebuilding a clean regular time index after binning.
+> **Timing correction (2026-09-13):** the native loader returned nonchronological
+> timestamps. The old workaround binned consecutive rows and then replaced their
+> clock, misaligning spikes and trials. `bin_spikes` now sorts and validates the
+> native clock before binning, and restores frequency metadata only when the
+> timestamp values match exactly. Reload the raw data before using this fix.
 
 ## Status
 
-**Status.** Steps 1–3 complete. 137 held-in units, 2,295 trials, Dandiset 000128.
+**Verified split-half experiment.** Notebook section 6b uses all 137 held-in units
+and 2,295 trials. Trials are split within 34 target directions, with neuron order
+and normalization learned from half A only. Half B retains a clear diagonal;
+median per-neuron A/B tuning correlation is **0.830**. Shuffling B's trial labels
+removes the ridge. This supports reproducible direction-associated rate patterns,
+not a proven cosine law or causal direction code.
 
-**✓ Step 2 — directional tuning.** 137 × 34 tuning matrix, cosine fits. Best single-neuron R² = **0.37**, most ≈ 0.2 — weak against *target* direction, as expected: this is a maze, so the same target is reached by different movements, and array recordings sample unbiasedly (cf. Churchland et al. 2010, Neuron 68:387–400).
+![Corrected split-half heatmaps](assets/mcmaze_split_half_tuning.png)
 
-**✓ Step 3 — population PCA.** ~**17 PCs for 85%** of variance on the 34 × 137 condition × neuron matrix (PC1 22%, PC2 10%); no 2-D ring. *Caveat: this matrix has rank ≤ 34, and the low-dimensional structure the literature reports lives in the time × neuron trajectory, not here.*
+**Preparation versus movement (2026-09-14).** Section 8 adds event-aligned neural
+and kinematic plots plus same-neuron condition-tuning comparisons, using exact
+raw-spike windows on 1,967 long-delay trials and 108 maze/version conditions.
+Preparation/movement correlation has median **0.050** across all units, but
+preparatory reliability is often low. For 48 units passing an exploratory
+within-epoch reliability screen in both epochs, the cross-epoch median is
+**0.178**. See the [aligned traces](assets/mcmaze_preparation_movement_traces.png)
+and [reliability controls](assets/mcmaze_preparation_movement_correlations.png).
+These are paper-inspired analyses, not proof of a dynamical mechanism.
 
-**→ Step 4 — decoder.** Hand-velocity decoding from population rates, scored against the NLB'21 baselines (smoothing 0.624 … AutoLFADS 0.907).
+**Historical results need rerunning.** The earlier cosine-fit and static-PCA
+numbers used the faulty binning. They remain in the experiment log as history,
+but must not be treated as current findings. The 2010 paper's PCA also uses
+conditions x (neurons x time), not our static direction x neuron matrix; its
+Figure 8 oscillator is a simulation, not an observed ring in these data.
+
+**Verification.** Synthetic split-half controls and a shuffled-timestamp binning
+regression passed. Corrected rates agree with raw NWB spike timestamps for
+25 sampled trial/neuron pairs; this is a spot check, not a full-data audit.
+
+**Next.** Recompute the earlier tuning/PCA analyses on the corrected clock, then
+develop a population decoder with held-out whole trials.
 
 Full experiment log: [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) · Figures: [`assets/`](assets/)
