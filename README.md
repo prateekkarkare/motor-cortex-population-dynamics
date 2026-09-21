@@ -73,6 +73,16 @@ within-epoch reliability screen in both epochs, the cross-epoch median is
 and [reliability controls](assets/mcmaze_preparation_movement_correlations.png).
 These are paper-inspired analyses, not proof of a dynamical mechanism.
 
+**Forward population prediction (2026-09-20).** Section 9 predicts movement-period
+condition-mean rates from preparatory rates, holding out entire mazes with
+nested training-only model selection. Population ridge regression removes
+**57.5%** of the training-mean baseline's held-out squared error, versus **5.7%**
+for a same-neuron linear model; shuffled training-pairing controls stay near
+zero. See the [prediction comparison](assets/mcmaze_population_forward_prediction.png).
+This establishes condition-level predictability, not causation, single-trial
+decoding or a fitted dynamical mechanism, and differs from the paper's reverse
+movement-pattern-to-preparation analysis.
+
 **Historical results need rerunning.** The earlier cosine-fit and static-PCA
 numbers used the faulty binning. They remain in the experiment log as history,
 but must not be treated as current findings. The 2010 paper's PCA also uses

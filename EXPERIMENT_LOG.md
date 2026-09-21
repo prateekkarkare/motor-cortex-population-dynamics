@@ -567,3 +567,228 @@ more trials per group, not 108 conditions and these epochs. It is not directly
 comparable to the lower preparatory reliability here. No kinematic encoding
 model, decoder, time-resolved correlation curve, or dynamical model was fitted;
 historical cosine/PCA results remain unrerun.
+
+## 2026-09-20 Individual trials in paired epoch windows
+
+**Question:** what do preparation and peri-movement look like for the same
+neuron on individual repetitions, before trial averaging hides variability?
+Section 8c adds paired raw-spike rasters and paired rate scatterplots, reusing
+section 8's exact raw-timestamp windows and matched-trial tables.
+
+Keep the original example units 2413, 2472, 2821; add units 1034, 2192, 2961 by
+fixed-seed sampling from the existing A-only modulation screen. Select four B
+trials per full condition, without replacement, using seed 20260920. The six
+conditions are mazes 3, 89, 95 with no-barrier and barrier variants. Selection
+does not inspect B responses or preparation/movement correlations.
+
+![Matched individual-trial rasters](assets/mcmaze_paired_epoch_trial_rasters.png)
+
+Every panel has the same 24 trial IDs in the same condition/ID order. Each tick
+is a raw spike, with no smoothing or trial averaging. Left: go cue -200 to
++100 ms. Right: movement onset -100 to +350 ms. These are separately aligned
+windows, not a stitched timeline or early/late subdivisions of movement. The
+right panel is wider to preserve equal milliseconds per horizontal distance.
+
+![Matched individual-trial rates](assets/mcmaze_paired_epoch_trial_rates.png)
+
+Each circle compares the two rates for one matched trial; diamonds are the
+four-trial condition means. Rates use their actual 300/450 ms durations, so the
+longer movement window does not artificially win a count comparison. The dashed
+line denotes equal rate, not preserved condition preference or a fitted model.
+Discrete counts can cause overlapping points; no jitter or pooled correlation
+is applied. `trial_view_paired_rates` retains all neuron/trial pairs.
+
+**Example to inspect:** unit 2472, blue versus orange (maze 3 at approximately
+-178 degrees, without versus with barriers). Preparatory means are 10.83 versus
+0.83 Hz; peri-movement means are 2.78 versus 21.67 Hz. Their relative response
+strengths reverse in these displayed trials. Unit 2961 increases for all six
+displayed condition means, which by itself says nothing about preservation of
+condition ordering. Unit 1034 is mostly silent during the displayed movement
+trials, not necessarily across all conditions.
+
+**Checks and limits:** all 288 displayed neuron/trial/window counts match the
+exact raw-spike tables, and all 144 paired rates preserve trial identity and
+match `epoch_rates`. All selected trials are unique, B-only, balanced, fully
+observed and paired across nonoverlapping windows. The figures are descriptive
+examples, not representative population estimates or a new hypothesis test.
+Section 8b remains the full-condition comparison with reliability controls.
+
+## 2026-09-20 Forward prediction from the preparatory population
+
+**Question:** can the whole preparatory population predict a neuron's subsequent
+movement response even when that neuron's own preparatory response is a poor
+predictor? Section 9 implements a forward condition-level prediction test, not
+the paper's reverse analysis of movement patterns explaining preparation.
+
+### Design
+
+Reuse section 8's exact raw-spike windows and 1,967 matched long-delay trials.
+The input and target matrices each have 108 conditions x 137 neurons. Inputs are
+preparatory mean rates; targets are peri-movement mean rates. All neurons and
+conditions are retained, with equal weight per condition and no old PCA output.
+
+Compare three models: each neuron's training-condition movement mean; an
+intercept and unrestricted slope using only its own preparatory rate; and ridge
+regression using all 137 preparatory rates. The population model includes the
+target neuron's own preparatory rate. Its regression weights are not synapses.
+
+Six outer folds hold out entire `maze_id` groups, keeping all three variants
+together: 90 training conditions and 18 test conditions per fold. Every condition
+receives one out-of-fold prediction. StandardScaler and ridge form a pipeline;
+three inner grouped folds on training mazes choose alpha from 1, 10, 100, 1000,
+10000 by raw-Hz mean squared error. Test targets never determine scaling or
+model selection. No negative predictions are clipped.
+
+Ten controls independently refit this procedure after shuffling whole movement
+population vectors among training conditions. Held-out targets are unchanged,
+and each control tunes its own regularization. These are descriptive controls,
+not a calibrated permutation p-value.
+
+### Results
+
+![Forward population prediction on held-out mazes](assets/mcmaze_population_forward_prediction.png)
+
+Score is one minus model squared error divided by training-mean baseline squared
+error, both evaluated out of fold. Zero matches the baseline, one is perfect,
+and negative is worse. The pooled score weights neurons with larger baseline
+errors more heavily; it is not a correlation or single-trial decoding accuracy.
+
+| Model | Pooled fraction of baseline squared error removed |
+|---|---:|
+| Training-mean baseline | 0.0000 |
+| Own-neuron preparatory rate | 0.0571 |
+| Preparatory population | 0.5748 |
+| Shuffled training pairing, median of ten controls | -0.0007 |
+
+Population skill is 0.526-0.604 across the six outer folds. Alpha 100 is selected
+in every fold. Shuffled-control skills range from -0.0143 to +0.0120. The median
+per-neuron skill is 0.0010 for the own-neuron model and 0.4469 for the population
+model. Population prediction beats own-neuron prediction for 131 of 137 neurons;
+this is a descriptive comparison, not a count of significant effects. Some
+neurons still have weak or negative population prediction skill.
+
+The figure includes all neurons' score comparisons and previously selected
+units 2472/2821, not examples chosen for strong prediction. All scatter points
+are held-out condition predictions. Results and fold assignments are retained
+in `population_predictions`, `population_neuron_skills`, `population_fold_audit`,
+`population_fold_scores`, and the shuffle arrays/audit.
+
+### Checks and interpretation
+
+A synthetic cross-neuron mapping, where each output depends on a different
+input neuron, gives population skill 1.000 and own-neuron skill -0.008. A
+constant target correctly has undefined per-neuron skill when its baseline
+error is zero. Nested maze disjointness, exactly-once test coverage and
+training-only scaling checks pass; no real neuron score is undefined.
+
+**Conclusion:** the population contains a predictive relationship between epochs
+that is poorly captured by the same neuron's preparatory rate alone. This is
+compatible with the proposed initial-state interpretation, but does not uniquely
+establish it. Shared targets, movement variables or inputs could generate the
+relationship. This does not prove causal necessity or autonomous neural dynamics.
+
+The movement trajectory is collapsed to an epoch mean and trials are averaged
+within condition. Therefore this does not demonstrate single-trial prediction,
+time-evolving dynamics, a reach-direction decoder, or the paper's full
+movement-pattern-to-preparation analysis. Held-out mazes are in the same
+recording; generalization to a new session or entirely novel directions remains
+untested. Historical cosine/PCA results remain unrerun.
+
+## 2026-09-21 Understanding the prediction test, one neuron at a time
+
+**Learning format:** follow one concrete example in short sequential steps.
+Introduce the question, inputs, baseline, prediction and check before abstract
+terminology. Keep illustrative numbers distinct from measurements, and the
+measured result distinct from its biological interpretation.
+
+### 1. What are we predicting?
+
+Follow neuron 2472. For one target-and-maze condition, average its repeated
+trials to obtain its preparatory rate and its movement-period rate. Do the same
+for the other recorded neurons. The prediction target is one number: neuron
+2472's condition-averaged movement firing rate in Hz. It is not reach direction
+or the timing of individual spikes.
+
+### 2. What does "ignore preparation; guess the average" mean?
+
+Suppose neuron 2472's movement rates in three training conditions were 20, 30
+and 40 Hz. **These are illustrative numbers, not its measured rates.** Their
+average is 30 Hz. The baseline would predict 30 Hz for every held-out condition,
+regardless of the target, maze or preparatory activity.
+
+In the actual experiment, this average uses 90 training-condition means in each
+outer fold, with equal weight per condition. Each neuron has its own average,
+and that average is recalculated from the training conditions of each fold.
+The held-out movement responses never enter its calculation. This baseline asks:
+does preparation help beyond knowing the neuron's usual movement rate?
+
+### 3. What do the two learned predictors see?
+
+The own-neuron model sees only neuron 2472's preparatory rate. It learns an
+intercept and slope to predict its movement rate; the slope can have either sign.
+The population model predicts the same movement rate, but can combine all 137
+preparatory rates, including 2472's. It learns a regularized weighted sum.
+The target stays the same; the available predictive information changes.
+
+Both learn only from training mazes. All three versions of each held-out maze
+stay together outside training and hyperparameter selection. We then compare
+their guesses with the recorded condition-averaged movement rates, and repeat
+the evaluation for every neuron.
+
+### 4. What numbers support the conclusion?
+
+Measured pooled error reduction was 0.0571 for own-neuron prediction and 0.5748
+for population prediction. To show what those scores mean, normalize the
+baseline's total held-out squared error to 100:
+
+| Predictor | Relative squared error remaining |
+|---|---:|
+| Training-mean baseline | 100.00 |
+| Same neuron's preparatory rate | 94.29 |
+| All 137 preparatory rates | 42.52 |
+
+These are normalized errors derived from the measured scores, not raw Hz or
+percentages of correct predictions. Errors are pooled across conditions and
+neurons; units with larger baseline errors contribute more to the pooled score.
+
+The advantage appears in all six outer folds: population error reduction is
+52.6-60.4%, versus 1.5-8.5% for the same-neuron model. Population prediction
+beats own-neuron prediction for 131 of 137 neurons. With each neuron weighted
+equally, the median per-neuron error reduction is 44.69% versus 0.10%.
+Ten refitted shuffled-training controls remove between -1.43% and +1.20% of
+baseline error, approximately zero.
+
+### 5. What can we conclude, precisely?
+
+**In this recording, the tested population linear model predicts condition-mean
+movement rates substantially better than the tested linear model using only
+the same neuron's preparatory rate.** Weak correspondence within one neuron
+does not imply that later activity is unpredictable from the population.
+
+This is not unequivocal evidence that every single neuron is a poor predictor,
+that all 137 are necessary, or that these regression weights are actual neural
+connections. A different single neuron or a smaller subset could be informative;
+those comparisons were not performed. The 131/137 count is descriptive, not a
+count of statistically significant effects. The folds and ten shuffle controls
+are not a formal significance analysis or independent biological replications.
+Single-trial performance, new sessions and causal mechanisms remain untested.
+
+### 6. Is this the paper's experiment?
+
+The population-level lesson is related, but the prediction direction and data
+representation differ. Our experiment asks: given the population's preparatory
+mean rates, can we predict neuron 2472's movement-period mean rate?
+
+The 2010 paper asks: given the other neurons' time-resolved movement patterns,
+can we explain a neuron's preparatory rate across conditions? Its movement
+patterns are reduced using PCA, and preparatory rates are predicted with linear
+regression on held-out conditions. That population-derived description generally
+outperformed the tested task, kinematic and available EMG descriptions. Those
+alternative descriptions were not uniformly useless, nor were all possible
+alternatives tested.
+
+Using later activity to explain earlier activity statistically does not mean
+that the future causes the past. The paper interprets its results as consistent
+with preparation establishing an initial network state, while acknowledging
+alternative explanations. Our forward test illustrates cross-epoch population
+predictability; it is not an exact replication or proof of that mechanism.
