@@ -83,6 +83,18 @@ This establishes condition-level predictability, not causation, single-trial
 decoding or a fitted dynamical mechanism, and differs from the paper's reverse
 movement-pattern-to-preparation analysis.
 
+**Trial-split control (2026-09-28).** Section 10 asks whether section 9's result
+is copied trial noise. If a trial-to-trial fluctuation, such as alertness, moves
+both periods of a trial together, a condition's two averages share it, and a
+model can copy it even on held-out mazes. With each condition's trials split in
+half, the population removes **45.9%** of baseline error when preparation and
+movement come from the same trials and **45.5%** when they come from different
+trials (medians of 20 splits); the same-neuron model scores 4.6% and 4.3%.
+Sharing trials adds about 0.6 percentage points, so the population advantage
+survives this check. It does not show whether preparation sets up the movement
+or both periods simply encode the same task variables. See the
+[trial-split figure](assets/mcmaze_trial_split_control.png).
+
 **Historical results need rerunning.** The earlier cosine-fit and static-PCA
 numbers used the faulty binning. They remain in the experiment log as history,
 but must not be treated as current findings. The 2010 paper's PCA also uses
@@ -93,7 +105,10 @@ Figure 8 oscillator is a simulation, not an observed ring in these data.
 regression passed. Corrected rates agree with raw NWB spike timestamps for
 25 sampled trial/neuron pairs; this is a spot check, not a full-data audit.
 
-**Next.** Recompute the earlier tuning/PCA analyses on the corrected clock, then
-develop a population decoder with held-out whole trials.
+**Next.** Test whether preparation and movement both simply encode the same task
+variables, such as target and path, or whether the preparatory population relates
+to movement beyond them. The 2010 paper's comparison of explanatory spaces
+(Figure 6) is the model, with maze-grouped folds. Recompute the earlier
+tuning/PCA analyses on the corrected clock when a question needs them.
 
 Full experiment log: [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) · Figures: [`assets/`](assets/)

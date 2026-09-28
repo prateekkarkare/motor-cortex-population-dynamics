@@ -792,3 +792,122 @@ that the future causes the past. The paper interprets its results as consistent
 with preparation establishing an initial network state, while acknowledging
 alternative explanations. Our forward test illustrates cross-epoch population
 predictability; it is not an exact replication or proof of that mechanism.
+
+## 2026-09-28 Trial-split control for the forward prediction
+
+### The idea, worked out on a toy neuron first
+
+The confound was hard to see in the abstract, so it was worked through on a
+made-up neuron. It fires about 10 Hz in preparation and 20 Hz in movement for
+every condition, so it has no tuning. Each condition's two averages use the same
+three trials, listed in the same order in both columns:
+
+| Condition | Preparation (Hz) | Movement, same trials (Hz) | Averages |
+|---|---|---|---|
+| A | 13, 12, 11 | 23, 22, 21 | 12 / 22 |
+| B | 10, 11, 9 | 20, 21, 19 | 10 / 20 |
+| C | 7, 9, 8 | 17, 19, 18 | 8 / 18 |
+| D | 12, 8, 13 | 22, 18, 23 | 11 / 21 |
+
+A line fitted on A, B and C (movement = preparation + 10) predicts held-out D
+exactly. The steps that resolved the puzzle, with Prateek's answers:
+
+1. First explanation: the neuron might represent something shared across
+   conditions, such as reach direction. But within condition D, trials 11 and 12
+   differ by 5 Hz in both periods although the condition is identical. (The
+   explanation is still a real alternative for the real data; see the end of
+   this section.)
+2. Prateek: the trials differ by noise, and *"it could be coupled noise which
+   pushes both in the same direction."*
+3. Running D again gave averages of 9 and 19, and the rule predicted the drop.
+   Prateek: *"it is just random noise each trial but the average of those random
+   noises is in a direction."* The rule was predicting the lean of those
+   particular trials, not anything about condition D.
+4. Prateek's formula: *"prep error - movement error = total error."* It is zero
+   whenever both numbers come from the same trials, whatever the push.
+5. His fix: measure the two averages on different trials. Their leans become
+   unrelated, and an untuned neuron honestly scores about 0.
+6. His fair comparison: the same 9 trials for both averages versus different
+   9 trials. Halving makes every lean bigger, so the full-data 57.5% is not a
+   fair reference.
+7. Two refinements from his questions. The lean shrinks with more trials because
+   pushes average to zero around a condition's true rate; a shift shared by all
+   of one condition's trials would not shrink, and interleaving the conditions
+   across the session prevents that. The fix needs the two leans to be
+   unrelated, not zero: a correction term that cancelled them would recreate the
+   fake perfect score.
+8. Why this could favour the population model: a push shared by many neurons
+   survives averaging across neurons while their private noise cancels, so a
+   population readout can copy it more precisely than one neuron's own rate can.
+
+### Question and prediction (written before running)
+
+**Question.** Section 9 averaged each condition's preparatory and movement rates
+over the same trials. Suppose something varies from trial to trial and pushes
+both periods of one trial in the same direction: coupled noise, such as
+alertness or slow recording drift. A condition's two averages then share the
+lean of its trials. A model can copy that lean from the preparatory average into
+its movement prediction. Holding out mazes does not prevent this, because each
+held-out condition brings its own lean into both numbers. A push shared by many
+neurons would help the population model more than the own-neuron model, because
+averaging across neurons cancels private noise but not the shared push. So
+coupled noise could mimic part of the section 9 gap.
+
+**Design.** Split each condition's trials into halves A and B with the section 8b
+splitter, seeds 42-61. Rerun the section 9 pipeline unchanged on:
+
+- same-trial halves: preparation A -> movement A, and preparation B -> movement B;
+- different-trial halves: preparation A -> movement B, and preparation B -> movement A.
+
+Both versions use about 9 trials per average and predict the same targets
+against the same baselines. Only the sharing of trials differs, so compare the
+versions within each seed. Do not compare halved scores with the full-data
+57.5%: halving alone makes every average noisier.
+
+**Prateek's prediction.** The population model's different-trial score will be a
+few points lower than its same-trial score, and it will still clearly beat the
+own-neuron model.
+
+**Mentor prediction (recorded 2026-09-27, before Prateek's).** Same-trial
+population score 0.35-0.50; same minus different 0.00-0.05 (median across
+seeds); own-neuron 0.01-0.06 in both versions; shuffled controls within +/-0.02.
+
+### Result
+
+Notebook section 10. The helpers were first checked on synthetic trials. Coupled
+noise without tuning scored 0.324 (population) and 0.149 (own neuron) with same
+trials, but 0.001 and -0.013 with different trials. Tuning without coupled
+noise scored 0.695 and 0.698. On real data, seed 42 reproduced the section 8b
+split, the 20 splits were distinct and balanced, folds matched section 9's, and
+both versions shared targets and baselines in every split.
+
+![Trial-split control](assets/mcmaze_trial_split_control.png)
+
+| Pooled score, median of 20 splits (range) | Same trials | Different trials |
+|---|---:|---:|
+| Population | 0.4585 (0.4473-0.4712) | 0.4552 (0.4404-0.4642) |
+| Own neuron | 0.0456 (0.0444-0.0481) | 0.0433 (0.0409-0.0453) |
+| Shuffled pairing | -0.0013 | -0.0010 |
+
+Paired within each split, sharing trials added 0.0058 to the population's
+pooled score (range -0.0069 to +0.0162; positive in 14 of 20 splits) and 0.0030
+to the own-neuron score. For the median neuron it added 0.0139. With different
+trials the population still beats the own-neuron model by 0.4115 pooled, and
+for 122 of 137 neurons (descriptive count). Alpha 100 was selected in all 480
+outer folds.
+
+**Interpretation.** Coupled noise adds about 0.6 percentage points to the
+population's pooled score, at most 1.6 in any split. The population's advantage
+survives when the two averages share no trials, so section 9's headline is
+banked against this confound. The drop from 0.5748 to about 0.46 comes from
+halving the trials per average, which both versions share.
+
+**Predictions.** Prateek's direction and his "still clearly beats the own-neuron
+model" held; the gap was smaller than "a few points". The mentor's ranges all
+held.
+
+**What this does not settle.** Both periods could depend on the same task
+variables, such as target and path. A population readout would then predict
+movement without any dynamics. Prateek raised this alternative while working
+through the toy example; it is the question the 2010 paper's Figure 6 addresses,
+and it is the next question here.
