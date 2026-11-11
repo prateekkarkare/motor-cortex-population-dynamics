@@ -911,3 +911,69 @@ variables, such as target and path. A population readout would then predict
 movement without any dynamics. Prateek raised this alternative while working
 through the toy example; it is the question the 2010 paper's Figure 6 addresses,
 and it is the next question here.
+
+## 2026-11-07 First run of his question
+
+*Recorded 2026-11-10 from the chat transcript (chat `6617e505`, Nov 7, line
+654), because the run was not saved at the time. Written and run by the AI in
+that chat; the script was left in `/tmp/mcmaze_section11/` and is gone, and
+notebook section 11 is not yet recovered.*
+
+### Question
+
+The Sep 28 entry ended on this question. Both periods could depend on the same
+task variables, such as target and path. Does activity before the reach predict
+each neuron's activity during the reach beyond what target and path already
+explain?
+
+### Prediction
+
+None from Prateek; he chose to run it without a guess ("just run it"). Earlier
+in the same session he correctly predicted the reaction-time order across the
+three maze versions: 298, 329 and 344 ms (median over the 36 mazes).
+
+The mentor's sealed guess (written Oct 18): A about 48% (range 35-55), B about
+60% (55-66), B - A about 12 points (4-20).
+
+### Method
+
+Scores are the share of error removed, on mazes the model never saw (six groups
+of held-out mazes).
+
+- A: target + path. The path is the hand's velocity every 50 ms, from 100 ms
+  before to 450 ms after the reach started (24 numbers; the default from the
+  Oct 10 plan).
+- B: A + activity before the reach (137 neurons).
+- B is allowed a separate penalty weight for the 137 preparation columns,
+  including zero. The first version used one shared penalty and failed two
+  self-checks: 137 columns of pure noise made B score 4 to 10 points below A,
+  which would have hidden any real extra. On the real data, B chose the normal
+  weight in every group.
+
+### Self-checks
+
+- Reproduces the logged numbers: 1,967 trials, 108 conditions, 137 neurons and
+  57.5%.
+- Fake data with nothing extra: B - A = +1.0 point.
+- Activity before the reach shuffled across mazes: B - A between -0.3 and +0.1
+  points.
+- A planted fake extra was found.
+
+### Result
+
+| Predicting each neuron's activity during the reach from | Score |
+|---|---|
+| A: target + path | 37.5% |
+| Activity before the reach alone (matches the Sep 20 result) | 57.5% |
+| B: target + path + activity before the reach | 62.4% |
+| **B - A** | **+24.9 points** |
+
+Positive in all six groups of held-out mazes (15 to 44 points) and for 119 of
+the 137 neurons; the median neuron gains 17 points. A and B fell inside the
+mentor's ranges. The extra came out about twice its guess, mainly because
+target and path alone did worse than it expected.
+
+**What this does not settle.** The path in A is only 24 numbers. Activity
+before the reach may simply describe the path better than those numbers do. A
+much finer description of the path is the first planned attempt to break the
+result; it has not been run.
